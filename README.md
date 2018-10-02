@@ -28,6 +28,6 @@ Using standard rules (mines distributed randomly, first click is always safe), m
 
 |              |  Size | # Mines | Mine Density | Win Rate |
 |:------------:|:-----:|:-------:|:------------:|:--------:|
-| Beginner     |  9x9  |     9   |     12.3%    |   95.7%  |
-| Intermediate | 16x16 |    40   |     15.6%    |   86.2%  |
-| Expert       | 16x30 |    99   |     20.6%    |   49.1%  |
+| Beginner     |  9x9  |     9   |     12.3%    |   88%  |
+| Intermediate | 16x16 |    40   |     15.6%    |   77%  |
+| Expert       | 16x30 |    99   |     20.6%    |   41%  |
