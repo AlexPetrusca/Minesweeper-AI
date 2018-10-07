@@ -32,35 +32,25 @@ function makeTankSolverMove() {
     let bestMove = null;
     let min = 100;
 
-    console.log("TANK MOVE: START");
-
     let peripheries;
-    // if (grid.numRemainingSquares() < 15) {
-    //     peripheries = grid.getRemainingSquaresAsPeriphery();
-    // } else {
+    if (grid.numRemainingSquares() < 15) {
+        peripheries = grid.getRemainingSquaresAsPeriphery();
+    } else {
         peripheries = grid.getPeripheries();
-    // }
+    }
 
-    //TODO getRidOF
-    console.log("TANK MOVE: PERFORM - " + peripheries.length);
-    console.log(grid);
-    console.log(peripheries);
-    console.log("");
-
-    // saveCanvas(canvas, "myCanvas", "jpg");
+    logTankMoveStarted(peripheries);
 
     for (const periphery of peripheries) {
         for (const square of periphery) {
             if (square.probability === 0) {
                 grid.pop(square.x, square.y);
-                if (grid.isMineMaster(square.x, square.y)) console.log("ERROR ERROR ERROR ERROR ERROR");
-                console.log("POP MOVE: x->" + square.x + " y->" + square.y);
-            }
-            else if (square.probability === 1) {
+                logPopMove(square);
+            } else if (square.probability === 1) {
                 grid.flag(square.x, square.y);
-                if (!grid.isMineMaster(square.x, square.y)) console.log("ERROR ERROR ERROR ERROR ERROR");
-                console.log("FLAG MOVE: x->" + square.x + " y->" + square.y);
+                logFlagMove(square);
             }
+
             if (square.probability <= min) {
                 min = square.probability;
                 bestMove = square;
@@ -68,10 +58,8 @@ function makeTankSolverMove() {
         }
     }
 
-    console.log("BEST MOVE: x->" + bestMove.x + " y->" + bestMove.y + " prob->" + bestMove.probability); //TODO getRidOF
-    console.log("=========================================================");
-    console.log("=========================================================");
-    console.log("=========================================================");
+    logBestMove(bestMove);
+
     grid.pop(bestMove.x, bestMove.y);
 }
 
@@ -89,4 +77,39 @@ function makeBestMove() {
     }
 
     thinking = false;
+}
+
+function logTankMoveStarted(peripheries) {
+    if (DEBUG) {
+        console.log("TANK MOVE: PERFORM - " + peripheries.length);
+        console.log(grid);
+        console.log(peripheries);
+        console.log("");
+        // saveCanvas(canvas, "myCanvas", "jpg");
+    }
+}
+
+function logPopMove(square) {
+    if (DEBUG) {
+        if (grid.isMineMaster(square.x, square.y))
+            console.log("ERROR ERROR ERROR ERROR ERROR");
+        console.log("POP MOVE: x->" + square.x + " y->" + square.y);
+    }
+}
+
+function logFlagMove(square) {
+    if (DEBUG) {
+        if (!grid.isMineMaster(square.x, square.y))
+            console.log("ERROR ERROR ERROR ERROR ERROR");
+        console.log("FLAG MOVE: x->" + square.x + " y->" + square.y);
+    }
+}
+
+function logBestMove(bestMove) {
+    if (DEBUG && bestMove.probability > 0) {
+        console.log("BEST MOVE: x->" + bestMove.x + " y->" + bestMove.y + " prob->" + bestMove.probability);
+        console.log("=========================================================");
+        console.log("=========================================================");
+        console.log("=========================================================");
+    }
 }

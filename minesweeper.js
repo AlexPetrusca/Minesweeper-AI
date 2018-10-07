@@ -2,7 +2,8 @@
 // Implementation of the game of minesweeper
 
 // program variables
-// const SQUARE_WIDTH = 50;
+let DEBUG = false;
+let AUTOPLAY = false;
 const SQUARE_WIDTH = 40;
 let WIDTH;
 let HEIGHT;
@@ -10,7 +11,7 @@ let HEIGHT;
 // grid class
 class Grid {
     static BEGINNER_GRID() { return { width: 9, height: 9, mines: 10 }; }
-    static INTERMEDIATE_GRID() { return { width: 16, height: 16, mines:40 }; }
+    static INTERMEDIATE_GRID() { return { width: 16, height: 16, mines: 40 }; }
     static ADVANCED_GRID() { return { width: 30, height: 16, mines: 99 }; }
     static CUSTOM_GRID(width, height, mines) { return { width: width, height: height, mines: mines }; }
 
@@ -27,6 +28,7 @@ class Grid {
         this.flags = gridOptions.mines;
         this.squaresLeft = gridOptions.width * gridOptions.height;
         this.firstPop = true;
+        this.killerMine = null;
 
         this.initializeGrid();
     }
@@ -84,15 +86,34 @@ class Grid {
 
             if (this.isEmptyMaster(x, y)) {
                 Grid.forEachNeighbor(x, y, (x, y) => this.pop(x, y));
-            } else if (this.isMineMaster(x,y)) {
+            } else if (!gameOver && this.isMineMaster(x,y)) {
                 console.log("GAME OVER");
-                gameOver = true
-            } else if (this.squaresLeft === this.numMines()) {
+                gameOver = true;
+                this.killerMine = {x: x, y: y};
+                this.popAllMines();
+            } else if (!gameOver && this.squaresLeft === this.numMines()) {
                 console.log("YOU WON");
                 gameOver = true;
                 gameWin = true;
+                this.flagAllSquares();
             }
         }
+    }
+
+    popAllMines() {
+        Grid.forWholeGrid(this, (x, y) => {
+            if (this.isMineMaster(x, y)) {
+                this.pop(x, y);
+            }
+        });
+    }
+
+    flagAllSquares() {
+        Grid.forWholeGrid(this, (x, y) => {
+            if (this.isHiddenUnflagged(x, y)) {
+                this.flag(x, y);
+            }
+        });
     }
 
     checkFirstPop(x, y) {
@@ -214,7 +235,6 @@ class Grid {
             this.setPeripheryVal(x, y, 0);
         }
 
-        console.log(periphery);
         this.computeProbabilities(periphery);
         return periphery;
     }
@@ -271,15 +291,11 @@ class Grid {
             return false;
         }
 
-
         for (const square of periphery) {
-
             this.applyConfiguration(periphery, config);
-
             for (let x = square.x - 1; x <= square.x + 1; x++) {
                 for (let y = square.y - 1; y <= square.y + 1; y++) {
                     if (!(x === square.x && y === square.y) && (x === square.x || y === square.y)) {
-
 
                         if (this.isIndicator(x, y) && this.getPeripheryVal(x, y) !== -1 && !this.isDoublePeripheryIdicator(x,y)) {
                             if (this.numAdjacentConfigMines(x, y) === this.getSquare(x, y)) {
@@ -288,7 +304,6 @@ class Grid {
                                 return false;
                             }
                         }
-
 
                     }
                 }
@@ -391,13 +406,16 @@ class Grid {
     }
 
     getRemainingSquaresAsPeriphery() {
-        let squares = [];
+        let periphery = [];
+        this.clearPeripheryGrid();
         Grid.forWholeGrid(this, (x, y) => {
             if (this.isHiddenUnflagged(x, y)) {
-                squares.push({x: x, y: y, probability: 0.0});
+                periphery.push({x: x, y: y, probability: 0.0});
+                this.setPeripheryVal(x, y, 1);
             }
         });
-        return [squares];
+        this.computeProbabilities(periphery);
+        return [periphery];
     }
 
     noMoreFlags() {
@@ -455,6 +473,10 @@ class Grid {
 
     isMineMaster(x, y) {
         return this.getMasterSquare(x, y) === 100;
+    }
+
+    isMine(x, y) {
+        return this.getSquare(x, y) === 100;
     }
 
     isIndicator(x, y) {
@@ -529,6 +551,19 @@ class Grid {
     }
 }
 
+let colorPicker = {
+    '-2':  [233,  63,  51],
+    '1':   [ 34,  74, 255],
+    '2':   [ 62, 124,   6],
+    '3':   [233,  63,  51],
+    '4':   [ 11,  31, 123],
+    '5':   [124,  29,  22],
+    '6':   [ 55, 124, 123],
+    '7':   [  0,   0,   0],
+    '8':   [123, 123, 123],
+    '100': [  0,   0,   0]
+};
+
 // game initialization
 let grid;
 let canvas;
@@ -547,14 +582,17 @@ function newGame(gridOptions) {
     grid = new Grid(gridOptions);
     WIDTH = grid.width() * SQUARE_WIDTH + 1;
     HEIGHT = grid.height() * SQUARE_WIDTH + 1;
-    // TODO uncomment
-    setInterval(performMove, 1000)
+
+    if (AUTOPLAY) {
+        setInterval(performMove, 500);
+    }
 }
 
 // rendering
 function draw() {
     if(!thinking) {
         drawGrid();
+        drawEndGame();
     }
 }
 
@@ -567,33 +605,76 @@ function drawGrid() {
     }
 }
 
+function drawEndGame() {
+    if (gameOver) {
+        textSize(70);
+        fill(255, 128, 64);
+        strokeJoin(ROUND);
+        if (gameWin) {
+            stroke(0);
+            strokeWeight(12);
+            text("WINNER!", 0, 0, WIDTH, HEIGHT);
+
+            stroke(255);
+            strokeWeight(8);
+            text("WINNER!", 0, 0, WIDTH, HEIGHT);
+            strokeWeight(1);
+        } else {
+            stroke(0);
+            strokeWeight(12);
+            text("GAME OVER!", 0, 0, WIDTH, HEIGHT);
+
+            stroke(255);
+            strokeWeight(8);
+            text("GAME OVER!", 0, 0, WIDTH, HEIGHT);
+            strokeWeight(1);
+        }
+    }
+}
+
 function drawGridSquare(x, y) {
+    stroke(127);
     grid.isVisible(x, y)? fill(255): fill(0);
-    // if (grid.getPeripheryVal(x, y) === 1) fill(0, 127 , 0); // TODO cleanup
-    // if (grid.getPeripheryVal(x, y) === 100) fill(127, 0 , 0); // TODO cleanup
+    if (grid.killerMine !== null && grid.killerMine.x === x && grid.killerMine.y === y)
+        fill(255, 0, 0);
     rect(x * SQUARE_WIDTH, y * SQUARE_WIDTH, SQUARE_WIDTH, SQUARE_WIDTH);
 
     if (grid.getSquare(x, y) !== -1 && grid.getSquare(x, y) !== 0) {
-        // fill(127);
-        fill(0, 0, 255);
-        textSize(12);
-        text(grid.getSquare(x, y), x * SQUARE_WIDTH, y * SQUARE_WIDTH, SQUARE_WIDTH, SQUARE_WIDTH);
-
-        fill(255, 0, 0);
-        text(x, x * SQUARE_WIDTH, y * SQUARE_WIDTH + SQUARE_WIDTH/2, SQUARE_WIDTH/2, SQUARE_WIDTH/2);
-        text(y, x * SQUARE_WIDTH + SQUARE_WIDTH/2, y * SQUARE_WIDTH + SQUARE_WIDTH/2, SQUARE_WIDTH/2, SQUARE_WIDTH/2);
+        fill(...colorPicker[grid.getSquare(x, y)]);
+        stroke(...colorPicker[grid.getSquare(x, y)]);
+        textSize(14);
+        drawSquareText(x, y);
     }
 
-    if (!grid.isEmptyMaster(x, y)) {
+    drawDebugSquareInfo(x, y);
+}
+
+function drawDebugSquareInfo(x, y) {
+    if (DEBUG && !grid.isEmptyMaster(x, y)) {
         fill(0, 255, 0);
         textSize(8);
         text(grid.getMasterSquare(x, y), x * SQUARE_WIDTH + SQUARE_WIDTH / 2, y * SQUARE_WIDTH, SQUARE_WIDTH / 2, SQUARE_WIDTH / 2);
 
+        fill(233, 63, 51);
+        text(x, x * SQUARE_WIDTH, y * SQUARE_WIDTH + SQUARE_WIDTH / 2, SQUARE_WIDTH / 2, SQUARE_WIDTH / 2);
+        text(y, x * SQUARE_WIDTH + SQUARE_WIDTH / 2, y * SQUARE_WIDTH + SQUARE_WIDTH / 2, SQUARE_WIDTH / 2, SQUARE_WIDTH / 2);
+
         if (grid.getPeripheryVal(x, y) !== 0) {
             fill(255, 255, 0);
             textSize(8);
-            text(grid.getPeripheryVal(x, y), x * SQUARE_WIDTH, y * SQUARE_WIDTH, SQUARE_WIDTH / 2, SQUARE_WIDTH / 2);
+            text("\u2022", x * SQUARE_WIDTH, y * SQUARE_WIDTH, SQUARE_WIDTH / 2, SQUARE_WIDTH / 2);
         }
+    }
+}
+
+function drawSquareText(x, y) {
+    if (grid.isIndicator(x, y)) {
+        text(grid.getSquare(x, y), x * SQUARE_WIDTH, y * SQUARE_WIDTH, SQUARE_WIDTH, SQUARE_WIDTH);
+    } else if (grid.isFlagged(x, y)) {
+        textSize(18);
+        text("\u2691", x * SQUARE_WIDTH + 3, y * SQUARE_WIDTH + 1, SQUARE_WIDTH, SQUARE_WIDTH);
+    } else if (grid.isMine(x, y)) {
+        text("\uD83D\uDCA3", x * SQUARE_WIDTH + 3, y * SQUARE_WIDTH + 2, SQUARE_WIDTH, SQUARE_WIDTH);
     }
 }
 
