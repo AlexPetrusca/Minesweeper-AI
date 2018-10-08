@@ -2,6 +2,18 @@
 // Given a board at a specific instance, returns the best move
 
 let thinking = false;
+let checked = [];
+
+function instantiateEngine() {
+    thinking = false;
+    checked = [];
+    for (let i = 0; i < grid.width(); i++) {
+        checked.push([]);
+        for (let j = 0; j < grid.height(); j++) {
+            checked[i].push(0);
+        }
+    }
+}
 
 function makeRandomMove() {
     let x = Math.floor(Math.random() * grid.width());
@@ -16,12 +28,14 @@ function makeRandomMove() {
 function makeBasicSolverMove() {
     let moveMade = false;
     Grid.forWholeGrid(grid, (x, y) => {
-        if (grid.isIndicator(x, y)) {
+        if (checked[x][y] !== 1 && grid.isIndicator(x, y)) {
             let indi = grid.getSquare(x, y);
             if (indi === grid.numAdjacentSquares(x, y)) {
+                checked[x][y] = 1;
                 moveMade |= grid.flagAdjacentSquares(x, y);
             } else if (indi === grid.numAdjacentFlags(x, y)) {
                 moveMade |= grid.popAdjacentSquares(x, y);
+                checked[x][y] = 1;
             }
         }
     });
@@ -80,7 +94,7 @@ function makeBestMove() {
 }
 
 function logTankMoveStarted(peripheries) {
-    if (DEBUG) {
+    if (LOGGING) {
         console.log("TANK MOVE: PERFORM - " + peripheries.length);
         console.log(grid);
         console.log(peripheries);
@@ -90,7 +104,7 @@ function logTankMoveStarted(peripheries) {
 }
 
 function logPopMove(square) {
-    if (DEBUG) {
+    if (LOGGING) {
         if (grid.isMineMaster(square.x, square.y))
             console.log("ERROR ERROR ERROR ERROR ERROR");
         console.log("POP MOVE: x->" + square.x + " y->" + square.y);
@@ -98,7 +112,7 @@ function logPopMove(square) {
 }
 
 function logFlagMove(square) {
-    if (DEBUG) {
+    if (LOGGING) {
         if (!grid.isMineMaster(square.x, square.y))
             console.log("ERROR ERROR ERROR ERROR ERROR");
         console.log("FLAG MOVE: x->" + square.x + " y->" + square.y);
@@ -106,8 +120,10 @@ function logFlagMove(square) {
 }
 
 function logBestMove(bestMove) {
-    if (DEBUG && bestMove.probability > 0) {
-        console.log("BEST MOVE: x->" + bestMove.x + " y->" + bestMove.y + " prob->" + bestMove.probability);
+    if (LOGGING) {
+        if (bestMove.probability > 0) {
+            console.log("BEST MOVE: x->" + bestMove.x + " y->" + bestMove.y + " prob->" + bestMove.probability);
+        }
         console.log("=========================================================");
         console.log("=========================================================");
         console.log("=========================================================");

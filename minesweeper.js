@@ -2,8 +2,9 @@
 // Implementation of the game of minesweeper
 
 // program variables
-let DEBUG = false;
-let AUTOPLAY = false;
+let VISUAL_DEBUG = false;
+let LOGGING = true;
+let AUTOPLAY = true;
 const SQUARE_WIDTH = 40;
 let WIDTH;
 let HEIGHT;
@@ -111,7 +112,7 @@ class Grid {
     flagAllSquares() {
         Grid.forWholeGrid(this, (x, y) => {
             if (this.isHiddenUnflagged(x, y)) {
-                this.flag(x, y);
+                this.setFlagged(x, y);
             }
         });
     }
@@ -239,8 +240,7 @@ class Grid {
         return periphery;
     }
 
-    // TODO maybe we dont need to ever call this method
-    unapplyConfiguration(periphery, config) {
+    unapplyConfiguration() {
         Grid.forWholeGrid(this, (x, y) => {
             if (this.getPeripheryVal(x, y) === 100 || this.getPeripheryVal(x, y) === 2) {
                 this.setPeripheryVal(x, y, 1);
@@ -572,7 +572,7 @@ let gameOver = false;
 let gameWin = false;
 
 function setup() {
-    newGame(Grid.INTERMEDIATE_GRID());
+    newGame(Grid.ADVANCED_GRID());
     canvas = createCanvas(WIDTH, HEIGHT);
     frameRate(60);
     textAlign(CENTER, CENTER);
@@ -580,6 +580,7 @@ function setup() {
 
 function newGame(gridOptions) {
     grid = new Grid(gridOptions);
+    instantiateEngine();
     WIDTH = grid.width() * SQUARE_WIDTH + 1;
     HEIGHT = grid.height() * SQUARE_WIDTH + 1;
 
@@ -650,7 +651,7 @@ function drawGridSquare(x, y) {
 }
 
 function drawDebugSquareInfo(x, y) {
-    if (DEBUG && !grid.isEmptyMaster(x, y)) {
+    if (VISUAL_DEBUG && !grid.isEmptyMaster(x, y)) {
         fill(0, 255, 0);
         textSize(8);
         text(grid.getMasterSquare(x, y), x * SQUARE_WIDTH + SQUARE_WIDTH / 2, y * SQUARE_WIDTH, SQUARE_WIDTH / 2, SQUARE_WIDTH / 2);
